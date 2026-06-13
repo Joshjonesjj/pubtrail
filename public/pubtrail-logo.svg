@@ -1,0 +1,37 @@
+<svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#2a1810"/>
+      <stop offset="100%" stop-color="#160d07"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="50%" cy="38%" r="60%">
+      <stop offset="0%" stop-color="rgba(245,166,35,.38)"/>
+      <stop offset="100%" stop-color="rgba(245,166,35,0)"/>
+    </radialGradient>
+    <linearGradient id="beer" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#ffd86b"/>
+      <stop offset="100%" stop-color="#e08c1a"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="512" height="512" rx="112" fill="url(#bg)"/>
+  <rect width="512" height="512" rx="112" fill="url(#glow)"/>
+
+  <!-- beer mug -->
+  <g transform="translate(150 120)">
+    <!-- handle -->
+    <path d="M168,70 h44 a52,52 0 0 1 52,52 v44 a52,52 0 0 1 -52,52 h-44"
+          fill="none" stroke="#fff6e0" stroke-width="22"/>
+    <!-- body -->
+    <rect x="40" y="60" width="148" height="216" rx="26" fill="url(#beer)" stroke="#fff6e0" stroke-width="14"/>
+    <!-- foam head -->
+    <rect x="34" y="40" width="160" height="46" rx="22" fill="#fff6e0"/>
+    <circle cx="62" cy="40" r="22" fill="#fff6e0"/>
+    <circle cx="108" cy="30" r="26" fill="#fff6e0"/>
+    <circle cx="156" cy="38" r="22" fill="#fff6e0"/>
+    <!-- bubbles -->
+    <circle cx="84"  cy="150" r="9" fill="rgba(255,255,255,.55)"/>
+    <circle cx="120" cy="200" r="7" fill="rgba(255,255,255,.5)"/>
+    <circle cx="100" cy="240" r="6" fill="rgba(255,255,255,.45)"/>
+  </g>
+</svg>
