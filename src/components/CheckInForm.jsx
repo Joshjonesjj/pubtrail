@@ -1,31 +1,47 @@
 import { useState } from 'react';
+import NearbyPubs from './NearbyPubs';
 
 const EMPTY = { name: '', pints: '1', mins: '45', notes: '' };
 
-// Form for checking in to a pub.
+// Form for checking in to a pub, with a location-based nearby-pub picker.
 export default function CheckInForm({ onAdd }) {
   const [form, setForm] = useState(EMPTY);
   const [vibe, setVibe] = useState(4);
+  const [coords, setCoords] = useState(null); // { lat, lon } when picked from the map
 
   const set = (key) => (e) => setForm((f) => ({ ...f, [key]: e.target.value }));
 
+  const pickNearby = (pub) => {
+    setForm((f) => ({ ...f, name: pub.name }));
+    setCoords({ lat: pub.lat, lon: pub.lon });
+  };
+
   const submit = () => {
     if (!form.name.trim()) return;
-    onAdd({ ...form, name: form.name.trim(), vibe });
+    onAdd({ ...form, name: form.name.trim(), vibe, lat: coords?.lat ?? null, lon: coords?.lon ?? null });
     setForm(EMPTY);
     setVibe(4);
+    setCoords(null);
   };
 
   return (
     <section className="card form-card">
       <div className="section-title">Check in to a pub</div>
+
+      <NearbyPubs onPick={pickNearby} />
+
       <div className="form-grid">
         <div className="field full">
-          <label htmlFor="fName">Pub name</label>
+          <label htmlFor="fName">
+            Pub name {coords && <span className="loc-tag">📍 location attached</span>}
+          </label>
           <input
             id="fName"
             value={form.name}
-            onChange={set('name')}
+            onChange={(e) => {
+              set('name')(e);
+              setCoords(null); // typing a different name clears the attached pin
+            }}
             onKeyDown={(e) => e.key === 'Enter' && submit()}
             placeholder="The Crown & Anchor"
           />

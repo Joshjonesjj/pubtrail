@@ -8,9 +8,11 @@ import StatGrid from './components/StatGrid';
 import RouteMap from './components/RouteMap';
 import CheckInForm from './components/CheckInForm';
 import Timeline from './components/Timeline';
+import History from './components/History';
 
 export default function App() {
-  const { pubs, stats, lastAddedId, addPub, removePub, loadDemo, clearAll } = usePubs();
+  const { pubs, stats, history, lastAddedId, addPub, removePub, finishSession, deleteSession, loadDemo, clearAll } =
+    usePubs();
   const progress = useScrollProgress();
 
   return (
@@ -41,7 +43,9 @@ export default function App() {
           onRemove={removePub}
           onLoadDemo={loadDemo}
           onClear={clearAll}
+          onFinish={finishSession}
         />
+        <History history={history} onDelete={deleteSession} />
       </main>
 
       <footer>
