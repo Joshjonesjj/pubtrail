@@ -95,3 +95,17 @@ export function crowDistance(geoPubs) {
   for (let i = 1; i < geoPubs.length; i++) m += distanceMeters(geoPubs[i - 1], geoPubs[i]);
   return m;
 }
+
+/**
+ * Geocode a place/area name to a coordinate via OpenStreetMap Nominatim
+ * (keyless). Returns { lat, lon, label } or null.
+ */
+export async function geocodePlace(query) {
+  const url = `https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${encodeURIComponent(query)}`;
+  const res = await fetch(url, { headers: { Accept: 'application/json' } });
+  if (!res.ok) throw new Error(`Geocode ${res.status}`);
+  const data = await res.json();
+  if (!data.length) return null;
+  const r = data[0];
+  return { lat: parseFloat(r.lat), lon: parseFloat(r.lon), label: r.display_name };
+}

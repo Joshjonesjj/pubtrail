@@ -1,6 +1,4 @@
-import { useMemo, useRef } from 'react';
-import AllPubsMap from './AllPubsMap';
-import { computeInsights } from '../lib/insights';
+import { useRef } from 'react';
 import { fmtTime, fmtDist, fmtMoney } from '../lib/format';
 
 function Tile({ value, label }) {
@@ -12,13 +10,12 @@ function Tile({ value, label }) {
   );
 }
 
-export default function StatsPanel({ history, exportData, importData }) {
-  const insights = useMemo(() => computeInsights(history), [history]);
+export default function StatsPanel({ insights, hasHistory, exportData, importData }) {
   const fileRef = useRef(null);
 
-  if (!history.length) return null;
+  if (!hasHistory) return null;
 
-  const { totals, bests, badges, priced, avgPrice, geoPubs } = insights;
+  const { totals, bests, badges, priced, avgPrice } = insights;
 
   const doExport = () => {
     const blob = new Blob([JSON.stringify(exportData(), null, 2)], { type: 'application/json' });
@@ -73,9 +70,11 @@ export default function StatsPanel({ history, exportData, importData }) {
       <h4 className="panel-sub">Badges</h4>
       <div className="badges">
         {badges.map((b) => (
-          <div key={b.id} className={`badge${b.earned ? ' earned' : ''}`} title={b.desc}>
+          <div key={b.id} className={`badge${b.earned ? ' earned' : ''}`}>
             <span className="badge-emoji">{b.emoji}</span>
             <span className="badge-label">{b.label}</span>
+            <span className="badge-desc">{b.desc}</span>
+            {b.earned && <span className="badge-tick">✓ earned</span>}
           </div>
         ))}
       </div>
@@ -96,15 +95,6 @@ export default function StatsPanel({ history, exportData, importData }) {
         </>
       ) : (
         <p className="price-hint">Add a price per pint when you check in and a guide to your pubs will build up here. 🍺</p>
-      )}
-
-      {geoPubs.length > 0 && (
-        <>
-          <h4 className="panel-sub">Your locals</h4>
-          <div className="map-stage locals-map">
-            <AllPubsMap pubs={geoPubs} />
-          </div>
-        </>
       )}
 
       <h4 className="panel-sub">Your data</h4>

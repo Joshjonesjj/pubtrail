@@ -2,31 +2,34 @@ import { computeStats } from '../hooks/usePubs';
 import { crowDistance } from './geo';
 import { fmtTime, fmtDist, fmtMoney, fmtDate } from './format';
 
-// Draw the normalised route shape into a box on the canvas.
-function drawRoute(ctx, geo, box) {
+// Draw the normalised route shape into a box on the canvas. Uses the real
+// walking geometry (`line` as [lon,lat] pairs) when available.
+function drawRoute(ctx, geo, box, line) {
   if (geo.length < 2) return;
-  const lats = geo.map((p) => p.lat);
-  const lons = geo.map((p) => p.lon);
-  const minLat = Math.min(...lats);
-  const maxLat = Math.max(...lats);
-  const minLon = Math.min(...lons);
-  const maxLon = Math.max(...lons);
+  const lineLL = line?.length ? line.map(([lon, lat]) => ({ lat, lon })) : geo;
+  const minLat = Math.min(...lineLL.map((p) => p.lat));
+  const maxLat = Math.max(...lineLL.map((p) => p.lat));
+  const minLon = Math.min(...lineLL.map((p) => p.lon));
+  const maxLon = Math.max(...lineLL.map((p) => p.lon));
   const spanLat = maxLat - minLat || 1e-6;
   const spanLon = maxLon - minLon || 1e-6;
   const scale = Math.min((box.w - 80) / spanLon, (box.h - 80) / spanLat);
   const ox = box.x + (box.w - spanLon * scale) / 2;
   const oy = box.y + (box.h - spanLat * scale) / 2;
-  const pts = geo.map((p) => ({ x: ox + (p.lon - minLon) * scale, y: oy + (maxLat - p.lat) * scale }));
+  const project = (lat, lon) => ({ x: ox + (lon - minLon) * scale, y: oy + (maxLat - lat) * scale });
 
+  const pathPts = lineLL.map((p) => project(p.lat, p.lon));
   ctx.strokeStyle = '#ffcf5c';
   ctx.lineWidth = 8;
   ctx.lineCap = 'round';
   ctx.lineJoin = 'round';
   ctx.beginPath();
-  pts.forEach((pt, i) => (i ? ctx.lineTo(pt.x, pt.y) : ctx.moveTo(pt.x, pt.y)));
+  pathPts.forEach((pt, i) => (i ? ctx.lineTo(pt.x, pt.y) : ctx.moveTo(pt.x, pt.y)));
   ctx.stroke();
-  pts.forEach((pt, i) => {
-    ctx.fillStyle = i === 0 ? '#6dd36d' : i === pts.length - 1 ? '#ff8a6b' : '#ffcf5c';
+
+  const dots = geo.map((p) => project(p.lat, p.lon));
+  dots.forEach((pt, i) => {
+    ctx.fillStyle = i === 0 ? '#6dd36d' : i === dots.length - 1 ? '#ff8a6b' : '#ffcf5c';
     ctx.beginPath();
     ctx.arc(pt.x, pt.y, 11, 0, Math.PI * 2);
     ctx.fill();
@@ -94,7 +97,7 @@ export async function shareCrawl(session) {
   });
 
   // route shape
-  drawRoute(ctx, geo, { x: 140, y: 730, w: W - 280, h: 420 });
+  drawRoute(ctx, geo, { x: 140, y: 730, w: W - 280, h: 420 }, session.walk?.coordinates);
 
   ctx.fillStyle = '#8a6e47';
   ctx.font = '600 34px "Segoe UI", system-ui, sans-serif';

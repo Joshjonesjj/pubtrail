@@ -51,11 +51,14 @@ export function computeInsights(history) {
       const key = p.name.trim().toLowerCase();
       let e = pubMap.get(key);
       if (!e) {
-        e = { name: p.name, visits: 0, pints: 0, priceSum: 0, priceN: 0, vibeSum: 0, vibeN: 0, lat: null, lon: null };
+        e = { name: p.name, visits: 0, pints: 0, mins: 0, spend: 0, priceSum: 0, priceN: 0, vibeSum: 0, vibeN: 0, lat: null, lon: null, log: [] };
         pubMap.set(key, e);
       }
+      const stopSpend = p.pricePerPint != null ? (+p.pints || 0) * p.pricePerPint : 0;
       e.visits += 1;
       e.pints += +p.pints || 0;
+      e.mins += +p.mins || 0;
+      e.spend += stopSpend;
       if (p.pricePerPint != null) {
         e.priceSum += p.pricePerPint;
         e.priceN += 1;
@@ -68,30 +71,47 @@ export function computeInsights(history) {
         e.lat = p.lat;
         e.lon = p.lon;
       }
+      e.log.push({
+        date: s.startedAt || s.endedAt,
+        sessionId: s.id,
+        sessionName: s.name || null,
+        pints: +p.pints || 0,
+        mins: +p.mins || 0,
+        spend: stopSpend,
+        priced: p.pricePerPint != null,
+        vibe: p.vibe || null,
+      });
     });
   });
 
-  const pubs = [...pubMap.values()].map((e) => ({
-    name: e.name,
-    visits: e.visits,
-    pints: e.pints,
-    avgPrice: e.priceN ? e.priceSum / e.priceN : null,
-    avgVibe: e.vibeN ? e.vibeSum / e.vibeN : null,
-    lat: e.lat,
-    lon: e.lon,
-  }));
-  totals.uniquePubs = pubs.length;
+  // Rich per-pub records for the "My Locals" view.
+  const locals = [...pubMap.values()]
+    .map((e) => ({
+      name: e.name,
+      visits: e.visits,
+      pints: e.pints,
+      mins: e.mins,
+      spend: e.spend,
+      avgPrice: e.priceN ? e.priceSum / e.priceN : null,
+      avgVibe: e.vibeN ? e.vibeSum / e.vibeN : null,
+      lat: e.lat,
+      lon: e.lon,
+      log: e.log.sort((a, b) => b.date - a.date),
+    }))
+    .sort((a, b) => b.visits - a.visits || b.spend - a.spend);
 
-  const priced = pubs.filter((p) => p.avgPrice != null).sort((a, b) => a.avgPrice - b.avgPrice);
+  totals.uniquePubs = locals.length;
+
+  const priced = locals.filter((p) => p.avgPrice != null).sort((a, b) => a.avgPrice - b.avgPrice);
   const avgPrice = priced.length ? priced.reduce((s, p) => s + p.avgPrice, 0) / priced.length : null;
 
   return {
     totals,
     bests,
-    pubs,
+    locals,
     priced,
     avgPrice,
-    geoPubs: pubs.filter((p) => p.lat != null && p.lon != null),
+    geoPubs: locals.filter((p) => p.lat != null && p.lon != null),
     badges: computeBadges(totals, bests),
   };
 }

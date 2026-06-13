@@ -4,7 +4,7 @@ import { fmtDist } from '../lib/format';
 
 // "Find pubs near me" — reads GPS, lists nearby pubs from OpenStreetMap,
 // and reports the chosen one back via onPick (which checks you in).
-export default function NearbyPubs({ onPick }) {
+export default function NearbyPubs({ onPick, pickVerb = 'Check in to' }) {
   const [status, setStatus] = useState('idle'); // idle | locating | searching | done | error
   const [pubs, setPubs] = useState([]);
   const [error, setError] = useState('');
@@ -85,7 +85,7 @@ export default function NearbyPubs({ onPick }) {
               key={p.id}
               className="nearby-item"
               onClick={() => onPick(p)}
-              title={`Check in to ${p.name}`}
+              title={`${pickVerb} ${p.name}`}
             >
               <span className="nearby-name">🍺 {p.name}</span>
               <span className="nearby-dist">{fmtDist(p.dist)}</span>

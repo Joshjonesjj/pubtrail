@@ -5,34 +5,37 @@ import { crowDistance } from '../lib/geo';
 import { shareCrawl } from '../lib/shareCard';
 import { fmtDate, fmtTime, fmtDist, fmtWalk } from '../lib/format';
 
-// Mini route preview drawn from the real coordinates (Strava-style thumbnail).
-function RouteThumb({ pubs }) {
+// Mini route preview. Uses the real walking geometry when stored, else a
+// straight crow-flies sketch between the stops.
+function RouteThumb({ pubs, line }) {
   const geo = pubs.filter((p) => p.lat != null && p.lon != null);
   if (geo.length < 2) return null;
 
   const W = 132;
   const H = 76;
   const pad = 12;
-  const lats = geo.map((p) => p.lat);
-  const lons = geo.map((p) => p.lon);
-  const minLat = Math.min(...lats);
-  const maxLat = Math.max(...lats);
-  const minLon = Math.min(...lons);
-  const maxLon = Math.max(...lons);
+  // Bounds taken from the route line if present, else the pub coords.
+  const lonLat = line?.length ? line.map(([lon, lat]) => ({ lat, lon })) : geo;
+  const minLat = Math.min(...lonLat.map((p) => p.lat));
+  const maxLat = Math.max(...lonLat.map((p) => p.lat));
+  const minLon = Math.min(...lonLat.map((p) => p.lon));
+  const maxLon = Math.max(...lonLat.map((p) => p.lon));
   const spanLat = maxLat - minLat || 1e-6;
   const spanLon = maxLon - minLon || 1e-6;
+  const project = (lat, lon) => ({
+    x: pad + ((lon - minLon) / spanLon) * (W - pad * 2),
+    y: pad + (1 - (lat - minLat) / spanLat) * (H - pad * 2),
+  });
 
-  const pts = geo.map((p) => ({
-    x: pad + ((p.lon - minLon) / spanLon) * (W - pad * 2),
-    y: pad + (1 - (p.lat - minLat) / spanLat) * (H - pad * 2),
-  }));
-  const d = pts.map((pt, i) => `${i ? 'L' : 'M'} ${pt.x.toFixed(1)} ${pt.y.toFixed(1)}`).join(' ');
+  const pathPts = line?.length ? line.map(([lon, lat]) => project(lat, lon)) : geo.map((p) => project(p.lat, p.lon));
+  const dots = geo.map((p) => project(p.lat, p.lon));
+  const d = pathPts.map((pt, i) => `${i ? 'L' : 'M'} ${pt.x.toFixed(1)} ${pt.y.toFixed(1)}`).join(' ');
 
   return (
     <svg className="route-thumb" viewBox={`0 0 ${W} ${H}`} aria-hidden="true">
       <path d={d} fill="none" stroke="#ffcf5c" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" opacity="0.9" />
-      {pts.map((pt, i) => (
-        <circle key={i} cx={pt.x} cy={pt.y} r="3" fill={i === 0 ? '#6dd36d' : i === pts.length - 1 ? '#ff8a6b' : '#ffcf5c'} />
+      {dots.map((pt, i) => (
+        <circle key={i} cx={pt.x} cy={pt.y} r="3" fill={i === 0 ? '#6dd36d' : i === dots.length - 1 ? '#ff8a6b' : '#ffcf5c'} />
       ))}
     </svg>
   );
@@ -79,7 +82,7 @@ function Session({ session, onDelete, onRename }) {
       </div>
 
       <div className="session-top">
-        <RouteThumb pubs={session.pubs} />
+        <RouteThumb pubs={session.pubs} line={session.walk?.coordinates} />
         <div className="session-summary">
           <div className="session-tiles">
             <Tile value={stats.count} label="Pubs" />

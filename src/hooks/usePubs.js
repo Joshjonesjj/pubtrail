@@ -205,7 +205,13 @@ export function usePubs() {
     const geo = cur.pubs.filter((p) => p.lat != null && p.lon != null);
     if (geo.length >= 2) {
       fetchFootRoute(geo)
-        .then((r) => r && patchSession(id, { walk: { meters: r.meters, seconds: r.seconds } }))
+        .then((r) => {
+          if (!r) return;
+          // Downsample the geometry so the stored route stays small.
+          const step = Math.max(1, Math.ceil(r.coordinates.length / 80));
+          const coordinates = r.coordinates.filter((_, i) => i % step === 0 || i === r.coordinates.length - 1);
+          patchSession(id, { walk: { meters: r.meters, seconds: r.seconds, coordinates } });
+        })
         .catch(() => {});
     }
   }, [store, patchSession]);
