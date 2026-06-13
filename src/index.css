@@ -138,6 +138,37 @@ header.hero { position: relative; z-index: 2; text-align: center; padding: 70px 
   color: #9c7d50; font-size: 14px; text-align: center; padding: 20px;
 }
 
+/* ---------- real (leaflet) map ---------- */
+.map-leaflet { position: absolute; inset: 0; }
+.map-leaflet.leaflet-container { background: #0c0a08; font-family: var(--font); }
+/* numbered amber pin */
+.pt-pin-inner {
+  width: 30px; height: 30px; border-radius: 50%;
+  display: grid; place-items: center;
+  font-size: 13px; font-weight: 800; color: #2b1a10;
+  background: radial-gradient(circle at 35% 30%, #ffe39a, #e08c1a);
+  border: 2px solid #2b1a10;
+  box-shadow: 0 0 0 3px rgba(245, 166, 35, 0.25), 0 3px 8px rgba(0, 0, 0, 0.5);
+}
+.pt-pin-inner.current {
+  background: radial-gradient(circle at 35% 30%, #fff, #ffcf5c);
+  box-shadow: 0 0 0 4px rgba(255, 207, 92, 0.45), 0 0 16px rgba(255, 207, 92, 0.7);
+  animation: pinPulse 1.6s ease-in-out infinite;
+}
+@keyframes pinPulse {
+  0%, 100% { box-shadow: 0 0 0 4px rgba(255, 207, 92, 0.45), 0 0 14px rgba(255, 207, 92, 0.6); }
+  50%      { box-shadow: 0 0 0 7px rgba(255, 207, 92, 0.18), 0 0 22px rgba(255, 207, 92, 0.85); }
+}
+.leaflet-tooltip {
+  background: #2b1a10; color: var(--cream); border: 1px solid var(--glass-brd);
+  border-radius: 8px; font-weight: 600; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+}
+.leaflet-tooltip-top::before { border-top-color: var(--glass-brd); }
+.leaflet-control-attribution { background: rgba(0, 0, 0, 0.5) !important; color: #9c7d50 !important; }
+.leaflet-control-attribution a { color: #cda867 !important; }
+.leaflet-bar a { background: #2b1a10; color: var(--gold); border-color: #000; }
+.leaflet-bar a:hover { background: #3a2415; }
+
 /* ---------- timeline ---------- */
 .timeline { position: relative; padding-left: 34px; }
 .timeline::before {
@@ -238,7 +269,8 @@ footer b { color: var(--gold); }
 .nearby-msg { margin-top: 10px; font-size: 13px; color: #cda867; }
 .nearby-list {
   margin-top: 12px; display: flex; flex-direction: column; gap: 8px;
-  max-height: 280px; overflow-y: auto;
+  max-height: 280px; overflow-y: auto; overflow-x: hidden; /* clip the hover grow */
+  padding: 3px; /* room so the scaled item never touches the edge */
 }
 .nearby-item {
   display: flex; align-items: center; justify-content: space-between; gap: 12px;
@@ -247,7 +279,10 @@ footer b { color: var(--gold); }
   border-radius: 11px; padding: 12px 14px; color: var(--cream); font-family: var(--font);
   transition: border-color 0.18s, transform 0.18s, background 0.18s;
 }
-.nearby-item:hover { border-color: var(--gold); transform: translateX(3px); background: rgba(245, 166, 35, 0.1); }
+.nearby-item:hover {
+  border-color: var(--gold); background: rgba(245, 166, 35, 0.1);
+  transform: scale(1.02); /* grows from centre — no sideways shift */
+}
 .nearby-name { font-size: 15px; font-weight: 600; }
 .nearby-dist {
   flex-shrink: 0; font-size: 12px; font-weight: 700; color: var(--ink);

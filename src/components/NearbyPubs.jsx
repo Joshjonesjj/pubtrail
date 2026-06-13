@@ -38,7 +38,9 @@ export default function NearbyPubs({ onPick }) {
             : 'Could not get your location. Try again outdoors or with GPS on.'
         );
       },
-      { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 }
+      // Coarser but much faster fix (network/cell vs waiting for GPS lock),
+      // and reuse a recent location to skip the wait entirely.
+      { enableHighAccuracy: false, timeout: 8000, maximumAge: 120000 }
     );
   };
 

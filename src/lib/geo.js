@@ -51,28 +51,23 @@ function parseElements(elements, lat, lon) {
  */
 export async function fetchNearbyPubs(lat, lon, radius = 600) {
   const filter = '["amenity"~"^(pub|bar|biergarten)$"]';
-  const query = `[out:json][timeout:20];(
+  const query = `[out:json][timeout:15];(
     node${filter}(around:${radius},${lat},${lon});
     way${filter}(around:${radius},${lat},${lon});
   );out center tags;`;
+  const body = 'data=' + encodeURIComponent(query);
 
-  let lastError;
-  for (const url of ENDPOINTS) {
-    try {
-      const res = await fetch(url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: 'data=' + encodeURIComponent(query),
-      });
-      if (!res.ok) {
-        lastError = new Error(`Overpass ${res.status}`);
-        continue; // server busy — try the next mirror
+  // Fire all mirrors at once and take whichever responds first — this avoids
+  // long waits when one server happens to be busy/rate-limited.
+  const attempts = ENDPOINTS.map((url) =>
+    fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body }).then(
+      async (res) => {
+        if (!res.ok) throw new Error(`Overpass ${res.status}`);
+        const json = await res.json();
+        return parseElements(json.elements, lat, lon);
       }
-      const json = await res.json();
-      return parseElements(json.elements, lat, lon);
-    } catch (e) {
-      lastError = e; // network/CORS error — try the next mirror
-    }
-  }
-  throw lastError ?? new Error('All Overpass endpoints failed');
+    )
+  );
+
+  return Promise.any(attempts); // rejects with AggregateError only if all fail
 }
