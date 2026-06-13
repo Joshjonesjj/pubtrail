@@ -16,7 +16,7 @@
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
-html { scroll-behavior: smooth; }
+html { scroll-behavior: smooth; overflow-x: hidden; }
 
 body {
   font-family: var(--font);
@@ -294,3 +294,30 @@ footer b { color: var(--gold); }
 .session-stops .ss-meta { color: #cda867; font-size: 12px; }
 .session-del { color: #ff8a6b; border-color: rgba(255, 138, 107, 0.3); }
 .session-del:hover { border-color: #ff8a6b; }
+
+/* allow long pub names to wrap rather than push the layout sideways */
+.nearby-name { min-width: 0; overflow-wrap: anywhere; }
+
+/* ---------- phone refinements ---------- */
+@media (max-width: 560px) {
+  /* respect the iPhone notch / home indicator */
+  header.hero { padding: calc(48px + env(safe-area-inset-top)) 16px 28px; }
+  .wrap { padding: 0 14px calc(80px + env(safe-area-inset-bottom)); }
+
+  .card { padding: 18px 15px; border-radius: 16px; }
+  .stats { margin: -18px 0 22px; gap: 9px; }
+  .stat { padding: 14px 4px; }
+
+  /* timeline: let pints wrap and the row breathe */
+  .timeline { padding-left: 26px; }
+  .stop .body { padding: 13px 14px; gap: 10px; }
+  .stop h3 { font-size: 17px; }
+  .stop .pints { flex-wrap: wrap; justify-content: flex-end; max-width: 96px; }
+  .stop .pints .mug { width: 17px; height: 21px; }
+
+  /* shrink the floating pint so it doesn't sit over content/buttons */
+  .pint-fixed { width: 56px; height: 90px; right: 10px; bottom: calc(10px + env(safe-area-inset-bottom)); }
+
+  /* nearby list items stack name + distance when tight */
+  .nearby-item { padding: 11px 12px; }
+}
