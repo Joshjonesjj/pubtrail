@@ -56,22 +56,12 @@ function Stop({ pub, isNewest, onRemove }) {
   );
 }
 
-export default function Timeline({ pubs, lastAddedId, onRemove, onLoadDemo, onClear, onFinish }) {
+export default function Timeline({ pubs, lastAddedId, onRemove, onLoadDemo, onClear }) {
   return (
     <>
       <div className="toolbar">
-        <div className="ttl">Your Crawl</div>
+        <div className="ttl">Tonight's stops</div>
         <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-          {pubs.length > 0 && (
-            <button
-              className="btn finish"
-              onClick={() => {
-                if (confirm('Finish this crawl and save it to your history?')) onFinish();
-              }}
-            >
-              🏁 Finish crawl
-            </button>
-          )}
           <button className="btn ghost" onClick={onLoadDemo}>
             Load demo crawl
           </button>

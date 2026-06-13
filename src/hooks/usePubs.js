@@ -1,31 +1,50 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 
-const KEY = 'pubtrail.v2';
-const OLD_KEY = 'pubtrail.v1';
+const KEY = 'pubtrail.v3';
+const KEY_V2 = 'pubtrail.v2';
+const KEY_V1 = 'pubtrail.v1';
 
-// Totals for a list of pubs. Shared by the live crawl and history cards.
-export function computeStats(pubs) {
-  const pints = pubs.reduce((s, p) => s + (+p.pints || 0), 0);
-  const mins = pubs.reduce((s, p) => s + (+p.mins || 0), 0);
+// Totals for completed stops, optionally including the live (active) pub.
+// `now` lets the active pub's elapsed time count up in real time.
+export function computeStats(pubs, active = null, now = Date.now()) {
+  let pints = pubs.reduce((s, p) => s + (+p.pints || 0), 0);
+  let mins = pubs.reduce((s, p) => s + (+p.mins || 0), 0);
+  let count = pubs.length;
+  if (active) {
+    pints += +active.pints || 0;
+    mins += Math.max(0, Math.round((now - active.checkedInAt) / 60000));
+    count += 1;
+  }
   const pace = mins ? (pints / (mins / 60)).toFixed(1) : '–';
-  return { count: pubs.length, pints, mins, pace };
+  return { count, pints, mins, pace };
 }
 
-const EMPTY_CURRENT = { pubs: [], startedAt: null };
+const EMPTY_CURRENT = { pubs: [], startedAt: null, active: null };
 
 function loadInitial() {
-  // v2 store?
   try {
-    const v2 = JSON.parse(localStorage.getItem(KEY));
-    if (v2 && v2.current && Array.isArray(v2.history)) return v2;
+    const v3 = JSON.parse(localStorage.getItem(KEY));
+    if (v3?.current && Array.isArray(v3.history)) return v3;
   } catch {
     /* ignore */
   }
-  // Migrate a v1 flat array into a current session.
+  // Migrate v2 ({current:{pubs,startedAt}, history}) -> add active:null.
   try {
-    const old = JSON.parse(localStorage.getItem(OLD_KEY));
+    const v2 = JSON.parse(localStorage.getItem(KEY_V2));
+    if (v2?.current && Array.isArray(v2.history)) {
+      return {
+        current: { pubs: v2.current.pubs || [], startedAt: v2.current.startedAt || null, active: null },
+        history: v2.history,
+      };
+    }
+  } catch {
+    /* ignore */
+  }
+  // Migrate v1 flat array.
+  try {
+    const old = JSON.parse(localStorage.getItem(KEY_V1));
     if (Array.isArray(old) && old.length) {
-      return { current: { pubs: old, startedAt: Date.now() }, history: [] };
+      return { current: { pubs: old, startedAt: Date.now(), active: null }, history: [] };
     }
   } catch {
     /* ignore */
@@ -41,9 +60,26 @@ const DEMO = [
   { id: 'd5', name: 'The Last Orders', pints: 1, mins: 30, vibe: 2, notes: 'Cheeky nightcap before the taxi home.' },
 ];
 
+// Build a completed-stop record from an active pub at checkout time.
+function closeActive(active, now) {
+  const mins = Math.max(0, Math.round((now - active.checkedInAt) / 60000));
+  return {
+    id: `co${now}${Math.floor(Math.random() * 99)}`,
+    name: active.name,
+    pints: +active.pints || 0,
+    mins,
+    vibe: active.vibe,
+    notes: (active.notes || '').trim(),
+    lat: active.lat ?? null,
+    lon: active.lon ?? null,
+  };
+}
+
 /**
- * Pub-crawl state: a live "current" session plus an archive of finished ones,
- * all persisted to localStorage.
+ * Crawl state with a live check-in/check-out flow:
+ *  - current.active: the pub you're in right now (timer + live pint count)
+ *  - current.pubs:   stops you've already checked out of tonight
+ *  - history:        finished crawls
  */
 export function usePubs() {
   const [store, setStore] = useState(loadInitial);
@@ -53,42 +89,61 @@ export function usePubs() {
     localStorage.setItem(KEY, JSON.stringify(store));
   }, [store]);
 
-  const pubs = store.current.pubs;
+  const { pubs, active } = store.current;
   const history = store.history;
 
-  const addPub = useCallback((draft) => {
-    const pub = {
-      id: `${Date.now()}${Math.floor(Math.random() * 99)}`,
-      name: draft.name,
-      pints: Math.max(0, parseInt(draft.pints, 10) || 0),
-      mins: Math.max(0, parseInt(draft.mins, 10) || 0),
-      vibe: draft.vibe,
-      notes: draft.notes?.trim() || '',
-      lat: draft.lat ?? null,
-      lon: draft.lon ?? null,
-    };
+  const checkIn = useCallback(({ name, lat, lon }) => {
     setStore((s) => ({
       ...s,
-      current: { startedAt: s.current.startedAt ?? Date.now(), pubs: [...s.current.pubs, pub] },
+      current: {
+        ...s.current,
+        startedAt: s.current.startedAt ?? Date.now(),
+        active: { name, lat: lat ?? null, lon: lon ?? null, pints: 0, vibe: 4, notes: '', checkedInAt: Date.now() },
+      },
     }));
-    setLastAddedId(pub.id);
-    return pub.id;
+  }, []);
+
+  const patchActive = useCallback((patch) => {
+    setStore((s) => (s.current.active ? { ...s, current: { ...s.current, active: { ...s.current.active, ...patch } } } : s));
+  }, []);
+
+  const addPint = useCallback(() => {
+    setStore((s) =>
+      s.current.active
+        ? { ...s, current: { ...s.current, active: { ...s.current.active, pints: (+s.current.active.pints || 0) + 1 } } }
+        : s
+    );
+  }, []);
+
+  const setPints = useCallback(
+    (n) => patchActive({ pints: Math.max(0, parseInt(n, 10) || 0) }),
+    [patchActive]
+  );
+  const setActiveVibe = useCallback((v) => patchActive({ vibe: v }), [patchActive]);
+  const setActiveNotes = useCallback((t) => patchActive({ notes: t }), [patchActive]);
+
+  const checkOut = useCallback(() => {
+    setStore((s) => {
+      if (!s.current.active) return s;
+      const stop = closeActive(s.current.active, Date.now());
+      setLastAddedId(stop.id);
+      return { ...s, current: { ...s.current, pubs: [...s.current.pubs, stop], active: null } };
+    });
   }, []);
 
   const removePub = useCallback((id) => {
     setStore((s) => ({ ...s, current: { ...s.current, pubs: s.current.pubs.filter((p) => p.id !== id) } }));
   }, []);
 
-  // Archive the live crawl into history and start fresh.
+  // End the night: check out the active pub (if any) and archive the crawl.
   const finishSession = useCallback(() => {
     setStore((s) => {
-      if (!s.current.pubs.length) return s;
-      const session = {
-        id: `s${Date.now()}`,
-        startedAt: s.current.startedAt ?? Date.now(),
-        endedAt: Date.now(),
-        pubs: s.current.pubs,
-      };
+      let cur = s.current;
+      if (cur.active) {
+        cur = { ...cur, pubs: [...cur.pubs, closeActive(cur.active, Date.now())], active: null };
+      }
+      if (!cur.pubs.length) return { ...s, current: { ...EMPTY_CURRENT } };
+      const session = { id: `s${Date.now()}`, startedAt: cur.startedAt ?? Date.now(), endedAt: Date.now(), pubs: cur.pubs };
       return { current: { ...EMPTY_CURRENT }, history: [session, ...s.history] };
     });
     setLastAddedId(null);
@@ -99,7 +154,7 @@ export function usePubs() {
   }, []);
 
   const loadDemo = useCallback(() => {
-    setStore((s) => ({ ...s, current: { pubs: DEMO, startedAt: Date.now() } }));
+    setStore((s) => ({ ...s, current: { pubs: DEMO, startedAt: Date.now(), active: null } }));
     setLastAddedId('d5');
   }, []);
 
@@ -108,17 +163,20 @@ export function usePubs() {
     setLastAddedId(null);
   }, []);
 
-  const stats = useMemo(() => computeStats(pubs), [pubs]);
-
   return {
     pubs,
-    stats,
+    active,
     history,
     lastAddedId,
-    addPub,
-    removePub,
+    checkIn,
+    addPint,
+    setPints,
+    setActiveVibe,
+    setActiveNotes,
+    checkOut,
     finishSession,
     deleteSession,
+    removePub,
     loadDemo,
     clearAll,
   };
