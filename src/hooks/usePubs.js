@@ -7,17 +7,21 @@ const KEY_V1 = 'pubtrail.v1';
 
 // Totals for completed stops, optionally including the live (active) pub.
 // `now` lets the active pub's elapsed time count up in real time.
+const spendOf = (p) => (p.pricePerPint != null ? (+p.pints || 0) * p.pricePerPint : 0);
+
 export function computeStats(pubs, active = null, now = Date.now()) {
   let pints = pubs.reduce((s, p) => s + (+p.pints || 0), 0);
   let mins = pubs.reduce((s, p) => s + (+p.mins || 0), 0);
+  let spend = pubs.reduce((s, p) => s + spendOf(p), 0);
   let count = pubs.length;
   if (active) {
     pints += +active.pints || 0;
     mins += Math.max(0, Math.round((now - active.checkedInAt) / 60000));
+    spend += spendOf(active);
     count += 1;
   }
   const pace = mins ? (pints / (mins / 60)).toFixed(1) : '–';
-  return { count, pints, mins, pace };
+  return { count, pints, mins, pace, spend };
 }
 
 const EMPTY_CURRENT = { pubs: [], startedAt: null, active: null };
@@ -54,11 +58,11 @@ function loadInitial() {
 }
 
 const DEMO = [
-  { id: 'd1', name: 'The Red Lion', pints: 2, mins: 55, vibe: 4, notes: 'Started strong, proper pint of bitter.' },
-  { id: 'd2', name: 'The Crown & Anchor', pints: 1, mins: 40, vibe: 3, notes: 'Quick one, decent jukebox.' },
-  { id: 'd3', name: 'The Foxhound', pints: 3, mins: 75, vibe: 5, notes: 'Best ale of the night, stayed for the quiz.' },
-  { id: 'd4', name: 'The Ship Inn', pints: 2, mins: 50, vibe: 4, notes: '' },
-  { id: 'd5', name: 'The Last Orders', pints: 1, mins: 30, vibe: 2, notes: 'Cheeky nightcap before the taxi home.' },
+  { id: 'd1', name: 'The Red Lion', pints: 2, mins: 55, vibe: 4, notes: 'Started strong, proper pint of bitter.', pricePerPint: 5.2 },
+  { id: 'd2', name: 'The Crown & Anchor', pints: 1, mins: 40, vibe: 3, notes: 'Quick one, decent jukebox.', pricePerPint: 4.8 },
+  { id: 'd3', name: 'The Foxhound', pints: 3, mins: 75, vibe: 5, notes: 'Best ale of the night, stayed for the quiz.', pricePerPint: 6.1 },
+  { id: 'd4', name: 'The Ship Inn', pints: 2, mins: 50, vibe: 4, notes: '', pricePerPint: 5.5 },
+  { id: 'd5', name: 'The Last Orders', pints: 1, mins: 30, vibe: 2, notes: 'Cheeky nightcap before the taxi home.', pricePerPint: 4.5 },
 ];
 
 // Build a completed-stop record from an active pub at checkout time.
@@ -73,6 +77,7 @@ function closeActive(active, now) {
     notes: (active.notes || '').trim(),
     lat: active.lat ?? null,
     lon: active.lon ?? null,
+    pricePerPint: active.pricePerPint ?? null,
   };
 }
 
@@ -99,7 +104,7 @@ export function usePubs() {
       current: {
         ...s.current,
         startedAt: s.current.startedAt ?? Date.now(),
-        active: { name, lat: lat ?? null, lon: lon ?? null, pints: 0, vibe: 4, notes: '', checkedInAt: Date.now() },
+        active: { name, lat: lat ?? null, lon: lon ?? null, pints: 0, vibe: 4, notes: '', pricePerPint: null, checkedInAt: Date.now() },
       },
     }));
   }, []);
@@ -122,6 +127,10 @@ export function usePubs() {
   );
   const setActiveVibe = useCallback((v) => patchActive({ vibe: v }), [patchActive]);
   const setActiveNotes = useCallback((t) => patchActive({ notes: t }), [patchActive]);
+  const setActivePrice = useCallback(
+    (v) => patchActive({ pricePerPint: v === '' || v == null ? null : Math.max(0, parseFloat(v) || 0) }),
+    [patchActive]
+  );
 
   const checkOut = useCallback(() => {
     setStore((s) => {
@@ -136,8 +145,45 @@ export function usePubs() {
     setStore((s) => ({ ...s, current: { ...s.current, pubs: s.current.pubs.filter((p) => p.id !== id) } }));
   }, []);
 
+  // Edit a checked-out stop (e.g. fix the pint count or price).
+  const editPub = useCallback((id, patch) => {
+    setStore((s) => ({ ...s, current: { ...s.current, pubs: s.current.pubs.map((p) => (p.id === id ? { ...p, ...patch } : p)) } }));
+  }, []);
+
+  // Re-open a stop: pull it back into the active pub, preserving elapsed time.
+  const reopenPub = useCallback((id) => {
+    setStore((s) => {
+      if (s.current.active) return s; // already in a pub
+      const stop = s.current.pubs.find((p) => p.id === id);
+      if (!stop) return s;
+      const checkedInAt = Date.now() - Math.max(0, +stop.mins || 0) * 60000;
+      const active = {
+        name: stop.name,
+        lat: stop.lat ?? null,
+        lon: stop.lon ?? null,
+        pints: +stop.pints || 0,
+        vibe: stop.vibe ?? 4,
+        notes: stop.notes || '',
+        pricePerPint: stop.pricePerPint ?? null,
+        checkedInAt,
+      };
+      return { ...s, current: { ...s.current, active, pubs: s.current.pubs.filter((p) => p.id !== id) } };
+    });
+  }, []);
+
   const patchSession = useCallback((id, data) => {
     setStore((s) => ({ ...s, history: s.history.map((h) => (h.id === id ? { ...h, ...data } : h)) }));
+  }, []);
+
+  const renameSession = useCallback((id, name) => patchSession(id, { name: name?.trim() || null }), [patchSession]);
+
+  const exportData = useCallback(() => store, [store]);
+  const importData = useCallback((parsed) => {
+    if (parsed?.current && Array.isArray(parsed.history)) {
+      setStore(parsed);
+      return true;
+    }
+    return false;
   }, []);
 
   // End the night: check out the active pub (if any), archive the crawl, then
@@ -188,10 +234,16 @@ export function usePubs() {
     setPints,
     setActiveVibe,
     setActiveNotes,
+    setActivePrice,
     checkOut,
     finishSession,
     deleteSession,
     removePub,
+    editPub,
+    reopenPub,
+    renameSession,
+    exportData,
+    importData,
     loadDemo,
     clearAll,
   };

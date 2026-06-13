@@ -26,6 +26,11 @@ export function fmtDist(m) {
   return `${(m / 1000).toFixed(1)} km`;
 }
 
+// Money -> "£5.20".
+export function fmtMoney(n) {
+  return `£${(n || 0).toFixed(2)}`;
+}
+
 // Walking duration in seconds -> "12 min" / "1h 5m".
 export function fmtWalk(seconds) {
   const mins = Math.round(seconds / 60);

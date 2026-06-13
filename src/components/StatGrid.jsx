@@ -1,12 +1,14 @@
 import { fmtTime } from '../lib/format';
 
-// The Strava-style headline metrics.
-export default function StatGrid({ stats }) {
+// The Strava-style headline metrics. `extra` appends live tiles (e.g. distance,
+// spend) when that data is available mid-crawl.
+export default function StatGrid({ stats, extra = [] }) {
   const items = [
     { num: stats.count, lbl: 'Pubs' },
     { num: stats.pints, lbl: 'Pints' },
     { num: stats.mins ? fmtTime(stats.mins) : '0m', lbl: 'On the lash' },
     { num: stats.pace, lbl: 'Pints / hr' },
+    ...extra,
   ];
   return (
     <section className="stats card">

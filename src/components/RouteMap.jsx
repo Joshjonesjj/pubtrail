@@ -82,7 +82,7 @@ function SvgRoute({ pubs }) {
   );
 }
 
-export default function RouteMap({ pubs }) {
+export default function RouteMap({ pubs, onRouteInfo }) {
   const hasCoords = pubs.some((p) => p.lat != null && p.lon != null);
 
   return (
@@ -92,7 +92,7 @@ export default function RouteMap({ pubs }) {
         {pubs.length === 0 && (
           <div className="map-empty">Your route will draw itself here as you check in to pubs. 🗺️</div>
         )}
-        {pubs.length > 0 && (hasCoords ? <LeafletRoute pubs={pubs} /> : <SvgRoute pubs={pubs} />)}
+        {pubs.length > 0 && (hasCoords ? <LeafletRoute pubs={pubs} onInfo={onRouteInfo} /> : <SvgRoute pubs={pubs} />)}
       </div>
     </section>
   );

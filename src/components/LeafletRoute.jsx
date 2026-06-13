@@ -18,7 +18,7 @@ function numberedIcon(n, current) {
  * Real OpenStreetMap (dark) map with the pub stops as pins and the genuine
  * walking path between them (falls back to a straight line if routing fails).
  */
-export default function LeafletRoute({ pubs }) {
+export default function LeafletRoute({ pubs, onInfo }) {
   const elRef = useRef(null);
   const mapRef = useRef(null);
   const layerRef = useRef(null);
@@ -105,6 +105,11 @@ export default function LeafletRoute({ pubs }) {
       cancelled = true;
     };
   }, [sig]);
+
+  // Surface distance/walk-time to the parent (for the live top stats).
+  useEffect(() => {
+    onInfo?.(info);
+  }, [info, onInfo]);
 
   return (
     <>

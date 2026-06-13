@@ -4,9 +4,19 @@ import { fmtTime } from '../lib/format';
 
 // A single crawl stop. Reveals on scroll; the newest stop gets a pour flash
 // and scrolls itself into view.
-function Stop({ pub, isNewest, onRemove }) {
+function Stop({ pub, isNewest, canReopen, onRemove, onEdit, onReopen }) {
   const ref = useRef(null);
   const [shown, setShown] = useState(false);
+
+  const edit = () => {
+    const np = prompt(`Pints at ${pub.name}:`, pub.pints);
+    if (np === null) return;
+    const pr = prompt('£ per pint (leave blank for none):', pub.pricePerPint ?? '');
+    onEdit(pub.id, {
+      pints: Math.max(0, parseInt(np, 10) || 0),
+      pricePerPint: pr === null || pr.trim() === '' ? null : Math.max(0, parseFloat(pr) || 0),
+    });
+  };
 
   useEffect(() => {
     const el = ref.current;
@@ -37,6 +47,7 @@ function Stop({ pub, isNewest, onRemove }) {
           <div className="meta">
             <span>⏱️ <b>{fmtTime(pub.mins)}</b></span>
             <span>🍺 <b>{pub.pints}</b> pint{pub.pints === 1 ? '' : 's'}</span>
+            {pub.pricePerPint != null ? <span>💷 <b>£{pub.pricePerPint.toFixed(2)}</b>/pt</span> : null}
             {pub.vibe ? <span className="vibe">{'🍺'.repeat(pub.vibe)}</span> : null}
           </div>
           {pub.notes ? <div className="notes">“{pub.notes}”</div> : null}
@@ -48,15 +59,19 @@ function Stop({ pub, isNewest, onRemove }) {
             <span style={{ color: '#9c7d50', fontSize: 13 }}>soft drinks 🥤</span>
           )}
         </div>
-        <button className="del" title="Remove" onClick={() => onRemove(pub.id)}>
-          ✕
-        </button>
+        <div className="stop-actions">
+          {canReopen && (
+            <button className="del" title="Re-open this pub" onClick={() => onReopen(pub.id)}>↩</button>
+          )}
+          <button className="del" title="Edit pints/price" onClick={edit}>✎</button>
+          <button className="del" title="Remove" onClick={() => onRemove(pub.id)}>✕</button>
+        </div>
       </div>
     </div>
   );
 }
 
-export default function Timeline({ pubs, lastAddedId, onRemove, onLoadDemo, onClear }) {
+export default function Timeline({ pubs, lastAddedId, canReopen, onRemove, onEdit, onReopen, onLoadDemo, onClear }) {
   return (
     <>
       <div className="toolbar">
@@ -82,7 +97,15 @@ export default function Timeline({ pubs, lastAddedId, onRemove, onLoadDemo, onCl
           </div>
         ) : (
           pubs.map((p) => (
-            <Stop key={p.id} pub={p} isNewest={p.id === lastAddedId} onRemove={onRemove} />
+            <Stop
+              key={p.id}
+              pub={p}
+              isNewest={p.id === lastAddedId}
+              canReopen={canReopen}
+              onRemove={onRemove}
+              onEdit={onEdit}
+              onReopen={onReopen}
+            />
           ))
         )}
       </div>

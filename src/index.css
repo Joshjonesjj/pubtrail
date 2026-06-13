@@ -355,6 +355,59 @@ footer b { color: var(--gold); }
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
 }
 
+/* ---------- timeline stop actions + price ---------- */
+.stop-actions { display: flex; flex-direction: column; gap: 2px; flex-shrink: 0; }
+.price-running { font-size: 12px; color: var(--gold); margin-top: 4px; }
+
+/* ---------- history head row ---------- */
+.session-headrow { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; margin-bottom: 14px; }
+.session-name { font-size: 18px; font-weight: 800; color: var(--foam); }
+.session-headrow .session-date { margin-bottom: 0; font-size: 14px; color: #cda867; font-weight: 600; }
+.session-actions { display: flex; gap: 6px; flex-shrink: 0; }
+.icon-btn {
+  background: rgba(255, 207, 92, 0.1); border: 1px solid var(--glass-brd); color: var(--gold);
+  width: 36px; height: 36px; border-radius: 10px; cursor: pointer; font-size: 15px;
+  display: grid; place-items: center; transition: background 0.15s, transform 0.1s;
+}
+.icon-btn:hover { background: rgba(255, 207, 92, 0.22); }
+.icon-btn:active { transform: scale(0.92); }
+
+/* ---------- stats panel ---------- */
+.stats-panel { margin-top: 4px; }
+.panel-sub { font-size: 12px; letter-spacing: 0.16em; text-transform: uppercase; color: #cda867; margin: 22px 0 10px; font-weight: 700; }
+.panel-sub:first-of-type { margin-top: 6px; }
+.panel-tiles { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+
+.badges { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+.badge {
+  display: flex; flex-direction: column; align-items: center; gap: 6px; text-align: center;
+  padding: 12px 6px; border-radius: 12px; border: 1px solid var(--glass-brd);
+  background: rgba(0, 0, 0, 0.2); opacity: 0.4; filter: grayscale(1); transition: 0.2s;
+}
+.badge.earned {
+  opacity: 1; filter: none;
+  background: linear-gradient(180deg, rgba(245, 166, 35, 0.16), rgba(0, 0, 0, 0.2));
+  border-color: rgba(255, 207, 92, 0.5); box-shadow: 0 0 14px -4px rgba(255, 207, 92, 0.5);
+}
+.badge-emoji { font-size: 26px; }
+.badge-label { font-size: 11px; color: var(--cream); line-height: 1.2; }
+
+.price-avg { color: #cda867; font-size: 14px; margin-bottom: 10px; }
+.price-avg b { color: var(--gold); }
+.price-hint { color: #9c7d50; font-size: 14px; }
+.price-list { list-style: none; display: flex; flex-direction: column; gap: 6px; }
+.price-list li { display: flex; align-items: center; gap: 10px; font-size: 14px; padding: 8px 12px; background: rgba(0, 0, 0, 0.2); border: 1px solid rgba(255, 207, 92, 0.12); border-radius: 10px; }
+.pl-name { flex: 1; min-width: 0; color: var(--cream); }
+.pl-visits { color: #9c7d50; font-size: 12px; }
+.pl-price { color: var(--gold); font-weight: 700; }
+
+.locals-map { height: 280px; }
+.data-row { display: flex; gap: 10px; flex-wrap: wrap; }
+
+@media (max-width: 560px) {
+  .badges { grid-template-columns: repeat(3, 1fr); }
+}
+
 /* ---------- active pub (live check-in) ---------- */
 .active-card {
   margin-bottom: 30px;

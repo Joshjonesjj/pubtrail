@@ -1,6 +1,8 @@
+import { useState } from 'react';
 import { usePubs, computeStats } from './hooks/usePubs';
 import { useScrollProgress } from './hooks/useScrollProgress';
 import { useNow } from './hooks/useNow';
+import { fmtDist, fmtMoney } from './lib/format';
 import AmbientBubbles from './components/AmbientBubbles';
 import ScrollProgress from './components/ScrollProgress';
 import Hero from './components/Hero';
@@ -10,6 +12,7 @@ import ActivePub from './components/ActivePub';
 import CheckInForm from './components/CheckInForm';
 import Timeline from './components/Timeline';
 import History from './components/History';
+import StatsPanel from './components/StatsPanel';
 
 export default function App() {
   const {
@@ -22,19 +25,31 @@ export default function App() {
     setPints,
     setActiveVibe,
     setActiveNotes,
+    setActivePrice,
     checkOut,
     finishSession,
     deleteSession,
     removePub,
+    editPub,
+    reopenPub,
+    renameSession,
+    exportData,
+    importData,
     loadDemo,
     clearAll,
   } = usePubs();
 
   const progress = useScrollProgress();
   const now = useNow(!!active); // ticks each second while you're in a pub
+  const [routeInfo, setRouteInfo] = useState(null); // live walking distance/time
 
   const stats = computeStats(pubs, active, now);
   const started = !!active || pubs.length > 0; // hide stats/map until the first check-in
+
+  // Live extra stat tiles (distance once the route resolves, spend if priced).
+  const extraStats = [];
+  if (routeInfo?.meters) extraStats.push({ num: fmtDist(routeInfo.meters), lbl: 'Walked' });
+  if (stats.spend > 0) extraStats.push({ num: fmtMoney(stats.spend), lbl: 'Spent' });
 
   // Show where you are now as the latest pin on the route.
   const routePubs = active
@@ -59,8 +74,8 @@ export default function App() {
       <Hero />
 
       <main className="wrap">
-        {started && <StatGrid stats={stats} />}
-        {started && <RouteMap pubs={routePubs} />}
+        {started && <StatGrid stats={stats} extra={extraStats} />}
+        {started && <RouteMap pubs={routePubs} onRouteInfo={setRouteInfo} />}
 
         {active ? (
           <ActivePub
@@ -70,6 +85,7 @@ export default function App() {
             onSetPints={setPints}
             onSetVibe={setActiveVibe}
             onSetNotes={setActiveNotes}
+            onSetPrice={setActivePrice}
             onCheckOut={checkOut}
           />
         ) : (
@@ -96,8 +112,18 @@ export default function App() {
           </>
         )}
 
-        <Timeline pubs={pubs} lastAddedId={lastAddedId} onRemove={removePub} onLoadDemo={loadDemo} onClear={clearAll} />
-        <History history={history} onDelete={deleteSession} />
+        <Timeline
+          pubs={pubs}
+          lastAddedId={lastAddedId}
+          canReopen={!active}
+          onRemove={removePub}
+          onEdit={editPub}
+          onReopen={reopenPub}
+          onLoadDemo={loadDemo}
+          onClear={clearAll}
+        />
+        <History history={history} onDelete={deleteSession} onRename={renameSession} />
+        <StatsPanel history={history} exportData={exportData} importData={importData} />
       </main>
 
       <footer>

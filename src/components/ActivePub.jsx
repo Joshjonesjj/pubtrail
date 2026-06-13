@@ -2,7 +2,7 @@ import PintGlass from './PintGlass';
 
 // The live "you're in this pub" screen: running timer, tap-to-add pints,
 // manual pint entry, vibe + notes, and check-out.
-export default function ActivePub({ active, now, onAddPint, onSetPints, onSetVibe, onSetNotes, onCheckOut }) {
+export default function ActivePub({ active, now, onAddPint, onSetPints, onSetVibe, onSetNotes, onSetPrice, onCheckOut }) {
   const elapsedSec = Math.max(0, Math.floor((now - active.checkedInAt) / 1000));
   const h = Math.floor(elapsedSec / 3600);
   const m = Math.floor((elapsedSec % 3600) / 60);
@@ -34,6 +34,23 @@ export default function ActivePub({ active, now, onAddPint, onSetPints, onSetVib
           <input type="number" min="0" value={active.pints} onChange={(e) => onSetPints(e.target.value)} />
           <button type="button" className="step" onClick={() => onSetPints(active.pints + 1)}>＋</button>
         </div>
+      </div>
+
+      <div className="field full">
+        <label htmlFor="aPrice">£ per pint (optional)</label>
+        <input
+          id="aPrice"
+          type="number"
+          min="0"
+          step="0.10"
+          inputMode="decimal"
+          value={active.pricePerPint ?? ''}
+          onChange={(e) => onSetPrice(e.target.value)}
+          placeholder="e.g. 5.20"
+        />
+        {active.pricePerPint != null && active.pints > 0 && (
+          <span className="price-running">Spent here so far: £{(active.pricePerPint * active.pints).toFixed(2)}</span>
+        )}
       </div>
 
       <div className="field full">

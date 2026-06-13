@@ -2,6 +2,7 @@ import { useState } from 'react';
 import RouteMap from './RouteMap';
 import { computeStats } from '../hooks/usePubs';
 import { crowDistance } from '../lib/geo';
+import { shareCrawl } from '../lib/shareCard';
 import { fmtDate, fmtTime, fmtDist, fmtWalk } from '../lib/format';
 
 // Mini route preview drawn from the real coordinates (Strava-style thumbnail).
@@ -23,7 +24,7 @@ function RouteThumb({ pubs }) {
 
   const pts = geo.map((p) => ({
     x: pad + ((p.lon - minLon) / spanLon) * (W - pad * 2),
-    y: pad + (1 - (p.lat - minLat) / spanLat) * (H - pad * 2), // invert: north = up
+    y: pad + (1 - (p.lat - minLat) / spanLat) * (H - pad * 2),
   }));
   const d = pts.map((pt, i) => `${i ? 'L' : 'M'} ${pt.x.toFixed(1)} ${pt.y.toFixed(1)}`).join(' ');
 
@@ -47,7 +48,7 @@ function Tile({ value, label }) {
 }
 
 // One archived crawl, presented as a workout-style recap.
-function Session({ session, onDelete }) {
+function Session({ session, onDelete, onRename }) {
   const [open, setOpen] = useState(false);
   const stats = computeStats(session.pubs);
   const geo = session.pubs.filter((p) => p.lat != null && p.lon != null);
@@ -56,23 +57,37 @@ function Session({ session, onDelete }) {
   const distanceLabel = meters != null ? fmtDist(meters) : '—';
   const walkLabel = session.walk?.seconds != null ? fmtWalk(session.walk.seconds) : null;
 
-  // Highlights
   const topPub = [...session.pubs].sort((a, b) => b.pints - a.pints || (b.vibe || 0) - (a.vibe || 0))[0];
   const longest = [...session.pubs].sort((a, b) => b.mins - a.mins)[0];
 
+  const rename = () => {
+    const n = prompt('Name this crawl:', session.name || '');
+    if (n !== null) onRename(session.id, n);
+  };
+
   return (
     <div className={`session${open ? ' open' : ''}`}>
+      <div className="session-headrow">
+        <div className="session-titles">
+          {session.name && <div className="session-name">{session.name}</div>}
+          <div className="session-date">{fmtDate(session.startedAt || session.endedAt)}</div>
+        </div>
+        <div className="session-actions">
+          <button className="icon-btn" title="Name this crawl" onClick={rename}>✎</button>
+          <button className="icon-btn" title="Share" onClick={() => shareCrawl(session)}>📤</button>
+        </div>
+      </div>
+
       <div className="session-top">
         <RouteThumb pubs={session.pubs} />
         <div className="session-summary">
-          <div className="session-date">{fmtDate(session.startedAt || session.endedAt)}</div>
           <div className="session-tiles">
             <Tile value={stats.count} label="Pubs" />
             <Tile value={stats.pints} label="Pints" />
             <Tile value={fmtTime(stats.mins)} label="Time" />
             <Tile value={stats.pace} label="Pints/hr" />
             <Tile value={distanceLabel} label="Distance" />
-            {walkLabel && <Tile value={walkLabel} label="Walked" />}
+            {stats.spend > 0 ? <Tile value={`£${stats.spend.toFixed(2)}`} label="Spent" /> : walkLabel ? <Tile value={walkLabel} label="Walked" /> : null}
           </div>
         </div>
       </div>
@@ -100,7 +115,10 @@ function Session({ session, onDelete }) {
               <li key={p.id}>
                 <span className="ss-n">{i + 1}</span>
                 <span className="ss-name">{p.name}</span>
-                <span className="ss-meta">{p.pints}🍺 · {fmtTime(p.mins)}{p.vibe ? ` · ${'🍺'.repeat(p.vibe)}` : ''}</span>
+                <span className="ss-meta">
+                  {p.pints}🍺 · {fmtTime(p.mins)}
+                  {p.pricePerPint != null ? ` · £${p.pricePerPint.toFixed(2)}/pt` : ''}
+                </span>
               </li>
             ))}
           </ul>
@@ -119,14 +137,14 @@ function Session({ session, onDelete }) {
   );
 }
 
-export default function History({ history, onDelete }) {
+export default function History({ history, onDelete, onRename }) {
   if (!history.length) return null;
   return (
     <section className="card history-card">
       <div className="section-title">Past Crawls</div>
       <div className="history">
         {history.map((s) => (
-          <Session key={s.id} session={s} onDelete={onDelete} />
+          <Session key={s.id} session={s} onDelete={onDelete} onRename={onRename} />
         ))}
       </div>
     </section>
