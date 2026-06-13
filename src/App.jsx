@@ -3,7 +3,6 @@ import { useScrollProgress } from './hooks/useScrollProgress';
 import { useNow } from './hooks/useNow';
 import AmbientBubbles from './components/AmbientBubbles';
 import ScrollProgress from './components/ScrollProgress';
-import DrainingPint from './components/DrainingPint';
 import Hero from './components/Hero';
 import StatGrid from './components/StatGrid';
 import RouteMap from './components/RouteMap';
@@ -35,6 +34,7 @@ export default function App() {
   const now = useNow(!!active); // ticks each second while you're in a pub
 
   const stats = computeStats(pubs, active, now);
+  const started = !!active || pubs.length > 0; // hide stats/map until the first check-in
 
   // Show where you are now as the latest pin on the route.
   const routePubs = active
@@ -55,13 +55,12 @@ export default function App() {
 
       <ScrollProgress progress={progress} />
       <AmbientBubbles />
-      <DrainingPint progress={progress} />
 
       <Hero />
 
       <main className="wrap">
-        <StatGrid stats={stats} />
-        <RouteMap pubs={routePubs} />
+        {started && <StatGrid stats={stats} />}
+        {started && <RouteMap pubs={routePubs} />}
 
         {active ? (
           <ActivePub

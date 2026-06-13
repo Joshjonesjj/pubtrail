@@ -1,6 +1,8 @@
-import { useEffect, useMemo, useRef } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
+import { fetchFootRoute } from '../lib/geo';
+import { fmtDist, fmtWalk } from '../lib/format';
 
 // Numbered amber pin (no image assets — avoids Leaflet's bundler icon issue).
 function numberedIcon(n, current) {
@@ -12,8 +14,6 @@ function numberedIcon(n, current) {
   });
 }
 
-const FOOT_ROUTER = 'https://routing.openstreetmap.de/routed-foot/route/v1/foot/';
-
 /**
  * Real OpenStreetMap (dark) map with the pub stops as pins and the genuine
  * walking path between them (falls back to a straight line if routing fails).
@@ -24,6 +24,7 @@ export default function LeafletRoute({ pubs }) {
   const layerRef = useRef(null);
   const pubsRef = useRef(pubs);
   pubsRef.current = pubs;
+  const [info, setInfo] = useState(null); // { meters, seconds }
 
   // Only re-run the heavy update when the geocoded stops actually change
   // (not on every parent re-render, e.g. the per-second live timer tick).
@@ -61,6 +62,7 @@ export default function LeafletRoute({ pubs }) {
     if (!map || !layer) return;
 
     layer.clearLayers();
+    setInfo(null);
     const geo = pubsRef.current.filter((p) => p.lat != null && p.lon != null);
     if (!geo.length) return;
 
@@ -85,18 +87,15 @@ export default function LeafletRoute({ pubs }) {
     }).addTo(layer);
 
     let cancelled = false;
-    const coords = geo.map((p) => `${p.lon},${p.lat}`).join(';');
-    fetch(`${FOOT_ROUTER}${coords}?overview=full&geometries=geojson`)
-      .then((r) => (r.ok ? r.json() : Promise.reject(new Error('route failed'))))
-      .then((data) => {
-        if (cancelled) return;
-        const line = data?.routes?.[0]?.geometry?.coordinates;
-        if (!line?.length) return;
+    fetchFootRoute(geo)
+      .then((route) => {
+        if (cancelled || !route) return;
         layer.removeLayer(fallback);
-        const latlngs = line.map(([lon, lat]) => [lat, lon]);
+        const latlngs = route.coordinates.map(([lon, lat]) => [lat, lon]);
         L.polyline(latlngs, { color: '#ffcf5c', weight: 9, opacity: 0.22 }).addTo(layer); // glow
         L.polyline(latlngs, { color: '#ffcf5c', weight: 4, opacity: 0.95 }).addTo(layer); // route
         map.fitBounds(L.latLngBounds(latlngs).extend(pinBounds), { padding: [44, 44], maxZoom: 17 });
+        setInfo({ meters: route.meters, seconds: route.seconds });
       })
       .catch(() => {
         /* keep the straight-line fallback */
@@ -107,5 +106,14 @@ export default function LeafletRoute({ pubs }) {
     };
   }, [sig]);
 
-  return <div ref={elRef} className="map-leaflet" />;
+  return (
+    <>
+      <div ref={elRef} className="map-leaflet" />
+      {info && (
+        <div className="map-badge">
+          🚶 {fmtDist(info.meters)} · {fmtWalk(info.seconds)} walk
+        </div>
+      )}
+    </>
+  );
 }

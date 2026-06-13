@@ -16,7 +16,7 @@ export default function Hero() {
         Track your crawl like an athlete tracks a marathon. Map the route, clock your time at each pub, and count every
         pint along the way. 🍻
       </p>
-      <div className="scroll-hint">▾ Scroll &amp; drink up ▾</div>
+      <div className="scroll-hint">▾ Check in to your first pub ▾</div>
     </header>
   );
 }

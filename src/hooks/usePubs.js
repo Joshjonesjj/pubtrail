@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import { fetchFootRoute } from '../lib/geo';
 
 const KEY = 'pubtrail.v3';
 const KEY_V2 = 'pubtrail.v2';
@@ -135,19 +136,33 @@ export function usePubs() {
     setStore((s) => ({ ...s, current: { ...s.current, pubs: s.current.pubs.filter((p) => p.id !== id) } }));
   }, []);
 
-  // End the night: check out the active pub (if any) and archive the crawl.
-  const finishSession = useCallback(() => {
-    setStore((s) => {
-      let cur = s.current;
-      if (cur.active) {
-        cur = { ...cur, pubs: [...cur.pubs, closeActive(cur.active, Date.now())], active: null };
-      }
-      if (!cur.pubs.length) return { ...s, current: { ...EMPTY_CURRENT } };
-      const session = { id: `s${Date.now()}`, startedAt: cur.startedAt ?? Date.now(), endedAt: Date.now(), pubs: cur.pubs };
-      return { current: { ...EMPTY_CURRENT }, history: [session, ...s.history] };
-    });
-    setLastAddedId(null);
+  const patchSession = useCallback((id, data) => {
+    setStore((s) => ({ ...s, history: s.history.map((h) => (h.id === id ? { ...h, ...data } : h)) }));
   }, []);
+
+  // End the night: check out the active pub (if any), archive the crawl, then
+  // fetch + store the real walking distance/time in the background.
+  const finishSession = useCallback(() => {
+    let cur = store.current;
+    if (cur.active) {
+      cur = { ...cur, pubs: [...cur.pubs, closeActive(cur.active, Date.now())], active: null };
+    }
+    if (!cur.pubs.length) {
+      setStore((s) => ({ ...s, current: { ...EMPTY_CURRENT } }));
+      return;
+    }
+    const id = `s${Date.now()}`;
+    const session = { id, startedAt: cur.startedAt ?? Date.now(), endedAt: Date.now(), pubs: cur.pubs, walk: null };
+    setStore((s) => ({ current: { ...EMPTY_CURRENT }, history: [session, ...s.history] }));
+    setLastAddedId(null);
+
+    const geo = cur.pubs.filter((p) => p.lat != null && p.lon != null);
+    if (geo.length >= 2) {
+      fetchFootRoute(geo)
+        .then((r) => r && patchSession(id, { walk: { meters: r.meters, seconds: r.seconds } }))
+        .catch(() => {});
+    }
+  }, [store, patchSession]);
 
   const deleteSession = useCallback((id) => {
     setStore((s) => ({ ...s, history: s.history.filter((h) => h.id !== id) }));

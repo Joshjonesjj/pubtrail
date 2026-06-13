@@ -71,3 +71,27 @@ export async function fetchNearbyPubs(lat, lon, radius = 600) {
 
   return Promise.any(attempts); // rejects with AggregateError only if all fail
 }
+
+const FOOT_ROUTER = 'https://routing.openstreetmap.de/routed-foot/route/v1/foot/';
+
+/**
+ * Walking route through an ordered list of {lat, lon} points.
+ * Returns { coordinates:[[lon,lat]...], meters, seconds } or null.
+ */
+export async function fetchFootRoute(geoPubs) {
+  if (geoPubs.length < 2) return null;
+  const coords = geoPubs.map((p) => `${p.lon},${p.lat}`).join(';');
+  const res = await fetch(`${FOOT_ROUTER}${coords}?overview=full&geometries=geojson`);
+  if (!res.ok) throw new Error(`route ${res.status}`);
+  const data = await res.json();
+  const r = data?.routes?.[0];
+  if (!r?.geometry?.coordinates?.length) return null;
+  return { coordinates: r.geometry.coordinates, meters: r.distance, seconds: r.duration };
+}
+
+// Sum of straight-line hops — a fast, offline fallback for total distance.
+export function crowDistance(geoPubs) {
+  let m = 0;
+  for (let i = 1; i < geoPubs.length; i++) m += distanceMeters(geoPubs[i - 1], geoPubs[i]);
+  return m;
+}

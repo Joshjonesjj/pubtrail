@@ -1,3 +1,5 @@
+import PintGlass from './PintGlass';
+
 // The live "you're in this pub" screen: running timer, tap-to-add pints,
 // manual pint entry, vibe + notes, and check-out.
 export default function ActivePub({ active, now, onAddPint, onSetPints, onSetVibe, onSetNotes, onCheckOut }) {
@@ -17,6 +19,7 @@ export default function ActivePub({ active, now, onAddPint, onSetPints, onSetVib
       </div>
 
       <div className="pint-counter">
+        <PintGlass pints={active.pints} />
         <div className="pc-count">
           <span className="pc-num">{active.pints}</span>
           <span className="pc-lbl">pint{active.pints === 1 ? '' : 's'} so far</span>
