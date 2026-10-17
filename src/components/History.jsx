@@ -76,8 +76,8 @@ function Session({ session, onDelete, onRename }) {
           <div className="session-date">{fmtDate(session.startedAt || session.endedAt)}</div>
         </div>
         <div className="session-actions">
-          <button className="icon-btn" title="Name this crawl" onClick={rename}>✎</button>
-          <button className="icon-btn" title="Share" onClick={() => shareCrawl(session)}>📤</button>
+          <button className="icon-btn labeled" title="Name this crawl" onClick={rename}>✎ Name</button>
+          <button className="icon-btn labeled" title="Share as an image" onClick={() => shareCrawl(session)}>📤 Share</button>
         </div>
       </div>
 

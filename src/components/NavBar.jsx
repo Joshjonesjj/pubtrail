@@ -10,11 +10,32 @@ const ITEMS = [
 // between the app's three modes.
 export default function NavBar({ view, onSelect }) {
   const [open, setOpen] = useState(false);
+  const [copied, setCopied] = useState(false);
   const active = ITEMS.find((i) => i.id === view);
 
   const select = (id) => {
     onSelect(id);
     setOpen(false);
+  };
+
+  // Send the app itself to a friend: native share sheet on phones, else copy.
+  const shareApp = async () => {
+    const url = window.location.origin;
+    if (navigator.share) {
+      try {
+        await navigator.share({ title: 'PubTrail', text: 'Track your pub crawls like a run 🍻', url });
+        return;
+      } catch (e) {
+        if (e.name === 'AbortError') return; // they closed the share sheet
+      }
+    }
+    try {
+      await navigator.clipboard.writeText(url);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2200);
+    } catch {
+      prompt('Copy this link:', url);
+    }
   };
 
   return (
@@ -45,6 +66,15 @@ export default function NavBar({ view, onSelect }) {
             </span>
           </button>
         ))}
+
+        <div className="drawer-foot">
+          <button className="btn drawer-share" onClick={shareApp}>
+            {copied ? 'Link copied ✓' : '📲 Share PubTrail with a friend'}
+          </button>
+          <p className="drawer-note">
+            They open the link in Safari, then Share → Add to Home Screen. Everyone’s crawls stay on their own phone.
+          </p>
+        </div>
       </nav>
     </>
   );

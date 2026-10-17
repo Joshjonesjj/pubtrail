@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
+import { addBaseMap } from '../lib/tiles';
 
 // Marker sized a touch by how often you've been there.
 function pubIcon(visits) {
@@ -20,10 +21,7 @@ export default function AllPubsMap({ pubs }) {
   useEffect(() => {
     const geo = pubs.filter((p) => p.lat != null && p.lon != null);
     const map = L.map(elRef.current, { zoomControl: true, scrollWheelZoom: false });
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-      maxZoom: 19,
-      attribution: '&copy; OpenStreetMap contributors &copy; CARTO',
-    }).addTo(map);
+    addBaseMap(map);
 
     if (geo.length) {
       geo.forEach((p) => {

@@ -124,6 +124,9 @@ header.hero { position: relative; z-index: 2; text-align: center; padding: 70px 
 /* ---------- real (leaflet) map ---------- */
 .map-leaflet { position: absolute; inset: 0; }
 .map-leaflet.leaflet-container { background: #0c0a08; font-family: var(--font); }
+/* OSM tiles are a light style: invert to dark, then warm them toward the
+   app's amber. Only the tile layer is filtered — pins and routes keep colour. */
+.map-leaflet .leaflet-tile-pane { filter: invert(1) hue-rotate(180deg) brightness(0.9) contrast(0.9) saturate(0.35) sepia(0.25); }
 /* numbered amber pin */
 .pt-pin-inner {
   width: 30px; height: 30px; border-radius: 50%;
@@ -443,6 +446,13 @@ footer b { color: var(--gold); }
 .di-text { display: flex; flex-direction: column; }
 .di-label { font-weight: 700; font-size: 15px; }
 .di-desc { font-size: 12px; color: #cda867; }
+.drawer { display: flex; flex-direction: column; }
+.drawer-foot { margin-top: auto; padding: 12px 4px calc(8px + env(safe-area-inset-bottom)); }
+.drawer-share { width: 100%; font-size: 14px; padding: 13px 16px; }
+.drawer-note { font-size: 12px; color: #9c7d50; line-height: 1.4; margin-top: 10px; }
+
+/* icon buttons that also carry a word (e.g. "📤 Share") */
+.icon-btn.labeled { width: auto; padding: 0 12px; display: inline-flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 700; font-family: var(--font); }
 
 header.hero { padding-top: 40px; }
 @media (max-width: 560px) { header.hero { padding: 26px 16px 24px; } }

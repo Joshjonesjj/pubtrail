@@ -57,12 +57,14 @@ function loadInitial() {
   return { current: { ...EMPTY_CURRENT }, history: [] };
 }
 
+// Sample crawl (fictional pubs) placed along a real walk from the Strand
+// through Covent Garden into Soho, so the demo shows the real map + route.
 const DEMO = [
-  { id: 'd1', name: 'The Red Lion', pints: 2, mins: 55, vibe: 4, notes: 'Started strong, proper pint of bitter.', pricePerPint: 5.2 },
-  { id: 'd2', name: 'The Crown & Anchor', pints: 1, mins: 40, vibe: 3, notes: 'Quick one, decent jukebox.', pricePerPint: 4.8 },
-  { id: 'd3', name: 'The Foxhound', pints: 3, mins: 75, vibe: 5, notes: 'Best ale of the night, stayed for the quiz.', pricePerPint: 6.1 },
-  { id: 'd4', name: 'The Ship Inn', pints: 2, mins: 50, vibe: 4, notes: '', pricePerPint: 5.5 },
-  { id: 'd5', name: 'The Last Orders', pints: 1, mins: 30, vibe: 2, notes: 'Cheeky nightcap before the taxi home.', pricePerPint: 4.5 },
+  { id: 'd1', name: 'The Red Lion', pints: 2, mins: 55, vibe: 4, notes: 'Started strong, proper pint of bitter.', pricePerPint: 5.2, lat: 51.5112, lon: -0.122 },
+  { id: 'd2', name: 'The Crown & Anchor', pints: 1, mins: 40, vibe: 3, notes: 'Quick one, decent jukebox.', pricePerPint: 4.8, lat: 51.5127, lon: -0.124 },
+  { id: 'd3', name: 'The Foxhound', pints: 3, mins: 75, vibe: 5, notes: 'Best ale of the night, stayed for the quiz.', pricePerPint: 6.1, lat: 51.5141, lon: -0.1268 },
+  { id: 'd4', name: 'The Ship Inn', pints: 2, mins: 50, vibe: 4, notes: '', pricePerPint: 5.5, lat: 51.5136, lon: -0.1311 },
+  { id: 'd5', name: 'The Last Orders', pints: 1, mins: 30, vibe: 2, notes: 'Cheeky nightcap before the taxi home.', pricePerPint: 4.5, lat: 51.5139, lon: -0.1349 },
 ];
 
 // Build a completed-stop record from an active pub at checkout time.

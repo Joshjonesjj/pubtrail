@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { fetchFootRoute } from '../lib/geo';
+import { addBaseMap } from '../lib/tiles';
 import { fmtDist, fmtWalk } from '../lib/format';
 
 // Numbered amber pin (no image assets — avoids Leaflet's bundler icon issue).
@@ -39,11 +40,10 @@ export default function LeafletRoute({ pubs, onInfo }) {
 
   // Create the map once.
   useEffect(() => {
-    const map = L.map(elRef.current, { zoomControl: true, scrollWheelZoom: false });
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-      maxZoom: 19,
-      attribution: '&copy; OpenStreetMap contributors &copy; CARTO',
-    }).addTo(map);
+    // Quarter-step zoom lets fitBounds frame a route snugly instead of jumping
+    // a whole level out (which on a phone-width map left routes tiny).
+    const map = L.map(elRef.current, { zoomControl: true, scrollWheelZoom: false, zoomSnap: 0.25 });
+    addBaseMap(map);
     map.setView([51.5074, -0.1278], 13);
     layerRef.current = L.layerGroup().addTo(map);
     mapRef.current = map;
@@ -74,7 +74,7 @@ export default function LeafletRoute({ pubs, onInfo }) {
 
     const pinBounds = L.latLngBounds(geo.map((p) => [p.lat, p.lon]));
     map.invalidateSize();
-    map.fitBounds(pinBounds, { padding: [44, 44], maxZoom: 17 });
+    map.fitBounds(pinBounds, { padding: [32, 32], maxZoom: 17 });
 
     if (geo.length < 2) return;
 
@@ -94,7 +94,7 @@ export default function LeafletRoute({ pubs, onInfo }) {
         const latlngs = route.coordinates.map(([lon, lat]) => [lat, lon]);
         L.polyline(latlngs, { color: '#ffcf5c', weight: 9, opacity: 0.22 }).addTo(layer); // glow
         L.polyline(latlngs, { color: '#ffcf5c', weight: 4, opacity: 0.95 }).addTo(layer); // route
-        map.fitBounds(L.latLngBounds(latlngs).extend(pinBounds), { padding: [44, 44], maxZoom: 17 });
+        map.fitBounds(L.latLngBounds(latlngs).extend(pinBounds), { padding: [32, 32], maxZoom: 17 });
         setInfo({ meters: route.meters, seconds: route.seconds });
       })
       .catch(() => {
